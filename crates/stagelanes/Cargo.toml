@@ -7,5 +7,8 @@ rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[dependencies]
+stagelanes-arch = { path = "../stagelanes-arch", version = "0.0.1" }
+
 [lints]
 workspace = true
