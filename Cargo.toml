@@ -1,0 +1,19 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+# repository = "https://github.com/<owner>/<repo>"  # TBD: GitHub owner
+publish = false
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "deny"
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)'] }
+
+[workspace.lints.clippy]
+undocumented_unsafe_blocks = "deny"
