@@ -55,7 +55,7 @@ you were given is not assigned to your machine in
 | Agent | Machine | OS |
 | --- | --- | --- |
 | A | Dell PowerEdge, 2x Xeon Silver (10 cores each), no GPU | Linux guest on Proxmox, cores pinned, both NUMA nodes exposed |
-| B | Desktop, Ryzen 7 (model TBD) on AM5, Radeon RX 570 (4 or 8 GB, TBD) | Windows |
+| B | Desktop, Ryzen 7 5700X (8 cores, AM4 Mini-ITX), Radeon RX 7800 XT 16 GB on PCIe 3.0 x16, 1 GbE (details: `docs/machines.md` in paralanes) | Windows |
 | C | MacBook Pro, M5 Pro, 24 GB unified memory | macOS, AArch64 |
 
 The Ryzen is the main machine for this repo because it runs on bare metal. On
@@ -73,7 +73,9 @@ on a quiet system and report the latency distribution, not one number.
 - **No unmeasured numbers.** A performance figure appears in a README, the
   atlas or a status file only with the run file that produced it. Every run
   file records machine, OS, kernel or build number, GPU driver version, wgpu
-  backend, Rust version and the exact command.
+  backend, GPU host link (PCIe generation and width, or unified memory),
+  network link type and speed for runs across machines, Rust version and the
+  exact command.
 - **A negative result is a result.** Publish it plainly.
 - **Data rule.** Use generated data or data Evan confirms he owns. Never
   commit machine data from an employer or customer.
@@ -108,7 +110,7 @@ file in `../paralanes/docs/status/`.
 ## Branches
 
 - `main` is Evan's. Never push to it.
-- Work on `m<n>-<short-topic>` (for example `m3-rx570-ops`). One branch per
+- Work on `m<n>-<short-topic>` (for example `m3-rx7800-ops`). One branch per
   milestone per repo.
 - Small commits, one logical change each. Run fmt, clippy and tests before
   each commit.
@@ -136,4 +138,3 @@ Only Evan merges, tags and publishes.
 ## Open decisions (TBD)
 
 - GitHub owner for the four repos
-- Ryzen 7 model, for the M6 results
