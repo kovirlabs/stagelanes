@@ -54,7 +54,7 @@ you were given is not assigned to your machine in
 
 | Agent | Machine | OS |
 | --- | --- | --- |
-| A | Dell PowerEdge, 2x Xeon Silver (10 cores each), no GPU | Linux guest on Proxmox, cores pinned, both NUMA nodes exposed |
+| A | Dell PowerEdge R440, 2x Xeon Silver 4214 (12 cores each, 24 total), 160 GB ECC, no GPU | Linux guest on Proxmox, cores pinned, both NUMA nodes exposed |
 | B | Desktop, Ryzen 7 5700X (8 cores, AM4 Mini-ITX), Radeon RX 7800 XT 16 GB on PCIe 3.0 x16, 1 GbE (details: `docs/machines.md` in paralanes) | Windows |
 | C | MacBook Pro, M5 Pro, 24 GB unified memory | macOS, AArch64 |
 

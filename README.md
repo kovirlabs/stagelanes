@@ -8,7 +8,8 @@ Part of the paralanes project: `paralanes` (umbrella: spec, plan, atlas,
 network join, appliance image), `bytelanes` (GPU data ops), `stagelanes`
 (stage placement runtime) and `diagsteno` (strain and vibration processing).
 
-No machine in the current test set has mixed core types, so placement by core type is untested. Placement by socket is tested on a two-socket Xeon server.
+No machine in the current test set has mixed core types, so placement by core type is untested. Placement by socket is tested on a two-socket Xeon server
+(PowerEdge R440, 2x Xeon Silver 4214).
 
 ## Licence
 
