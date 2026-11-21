@@ -167,14 +167,14 @@ checksum = "3244542535d5de959d90ec55d1b5ff0fd2bb7b1310223907d5f11932847f7b59"
 
 [[package]]
 name = "stagelanes"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "stagelanes-arch",
 ]
 
 [[package]]
 name = "stagelanes-arch"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "libc",
  "windows-sys",
@@ -182,11 +182,11 @@ dependencies = [
 
 [[package]]
 name = "stagelanes-bench"
-version = "0.0.0"
+version = "0.0.1"
 
 [[package]]
 name = "stagelanes-mem"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "libc",
  "windows-sys",
@@ -194,11 +194,11 @@ dependencies = [
 
 [[package]]
 name = "stagelanes-pipe"
-version = "0.0.0"
+version = "0.0.1"
 
 [[package]]
 name = "stagelanes-ring"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "loom",
 ]
