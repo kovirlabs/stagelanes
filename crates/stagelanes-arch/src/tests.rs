@@ -28,22 +28,28 @@ fn detects_this_machine() {
     }
 }
 
+/// Pins to each CPU in turn and checks the thread lands there. A CPU the
+/// process may not use (a cgroup cpuset or `taskset` on Linux) refuses the
+/// pin; that is allowed, but at least one pin must work.
 #[test]
 fn pins_to_every_cpu() {
     let Ok(t) = Topology::detect() else { return };
     std::thread::scope(|s| {
         s.spawn(|| {
+            let mut pinned = 0;
             for cpu in &t.cpus {
                 match pin_current_thread(cpu.os) {
                     Ok(()) => {
+                        pinned += 1;
                         if let Some(now) = current_cpu() {
                             assert_eq!(now, cpu.os, "pinned to {} but running on {now}", cpu.os);
                         }
                     }
                     Err(Error::Unsupported(_)) => return,
-                    Err(e) => panic!("pinning to {} failed: {e}", cpu.os),
+                    Err(e) => eprintln!("pinning to {} refused: {e}", cpu.os),
                 }
             }
+            assert!(pinned > 0, "no CPU accepted a pin");
         });
     });
 }
