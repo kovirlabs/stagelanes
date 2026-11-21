@@ -7,8 +7,8 @@ command also runs on macOS.
 
 Read `../paralanes/docs/PLAN.md` and `../paralanes/docs/SPEC.md` before any
 change. The plan sets milestone order and which machine does what. The spec is
-the technical source of truth; its `cf-` crate names are placeholders, mapped
-to this repo's crates in the table below. Where plan and spec disagree, the
+the technical source of truth and uses the real crate names; the earlier
+`cf-` placeholder names appear in the table below for reference. Where plan and spec disagree, the
 plan is current; note the conflict in your status file.
 
 > DRAFT. Items marked TBD are open decisions for Evan.
@@ -34,6 +34,7 @@ development; switch to published versions only when Evan says so.
 | `stagelanes-mem` | `cf-mem` | lib | Pinned memory pools: large pages and NUMA on Linux and Windows, page-locked memory on macOS | yes |
 | `stagelanes-arch` | `cf-arch` | lib | Topology detection (cache, frequency, socket, core class), core pinning, prefetch, cycle counters | yes |
 | `stagelanes-pipe` | `cf-pipe` | lib | Stage threads, core and socket plan, batched handoff | no |
+| `stagelanes-bench` | `cf-bench` (pipeline half) | bin | Synthetic load generator, latency histograms, bytes-touched counter, allocation and lock counters (R1, R2) | no |
 | `stagelanes` | none | bin | CLI: `stagelanes topology` | no |
 
 ## Milestones in this repo
@@ -122,6 +123,10 @@ cargo +nightly miri test -p stagelanes-ring
 RUSTFLAGS="--cfg loom" cargo test -p stagelanes-ring --release
 cargo run -p stagelanes -- topology
 ```
+
+Pipeline benchmark output from `stagelanes-bench` goes to
+`../paralanes/atlas/runs/<machine>/<YYYY-MM-DD>-pipeline.json`; do not edit
+run files after they are committed.
 
 ## Release rule
 

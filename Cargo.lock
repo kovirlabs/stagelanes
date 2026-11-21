@@ -11,6 +11,10 @@ name = "stagelanes-arch"
 version = "0.0.0"
 
 [[package]]
+name = "stagelanes-bench"
+version = "0.0.0"
+
+[[package]]
 name = "stagelanes-mem"
 version = "0.0.0"
 
