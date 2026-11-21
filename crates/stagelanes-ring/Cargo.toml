@@ -7,5 +7,13 @@ rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[features]
+default = ["alloc"]
+## Owned ring handles through `Ring::split_arc`. Needs a global allocator.
+alloc = []
+
+[target.'cfg(loom)'.dependencies]
+loom = "0.7.3"
+
 [lints]
 workspace = true
