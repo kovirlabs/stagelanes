@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # stagelanes
 
 Rust runtime that reads each core's cache size, top frequency and socket,
@@ -125,6 +129,37 @@ cargo +nightly miri test -p stagelanes-ring
 RUSTFLAGS="--cfg loom" cargo test -p stagelanes-ring --release
 cargo run -p stagelanes -- topology
 ```
+
+CI (`.github/workflows/ci.yml`) runs fmt, clippy and test on Ubuntu, Windows
+and macOS, plus separate miri and loom jobs for `stagelanes-ring`. Run the same
+set locally before each commit.
+
+Single crate or single test:
+
+```
+cargo test -p stagelanes-ring
+cargo test -p stagelanes-ring <test_name_substring>
+cargo test -p stagelanes-ring <test_name> -- --exact --nocapture
+```
+
+The loom line above is POSIX shell syntax. In PowerShell set the variable first:
+`$env:RUSTFLAGS="--cfg loom"; cargo test -p stagelanes-ring --release`, then
+clear it (`Remove-Item Env:RUSTFLAGS`) so later builds don't reuse the loom cfg.
+
+## Workspace setup
+
+- Edition 2024, `rust-version = "1.85"`, resolver 3. Version, licence and
+  `publish = false` are inherited from `[workspace.package]`; every crate sets
+  `[lints] workspace = true`.
+- Workspace lints: `missing_docs` warns, but clippy runs with `-D warnings`, so
+  an undocumented public item fails CI. `unsafe_op_in_unsafe_fn` and
+  `clippy::undocumented_unsafe_blocks` are deny.
+- `cfg(loom)` is declared in `check-cfg`; loom-specific code in
+  `stagelanes-ring` goes behind `#[cfg(loom)]`.
+- Current state: every crate is a stub (crate docs only). The two binaries
+  print "not implemented yet" and exit with code 2. No inter-crate
+  dependencies are declared yet; add them as path dependencies when the
+  milestone needs them.
 
 Pipeline benchmark output from `stagelanes-bench` goes to
 `../paralanes/atlas/runs/<machine>/<YYYY-MM-DD>-pipeline.json`; do not edit
