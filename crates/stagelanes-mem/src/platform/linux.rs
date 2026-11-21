@@ -100,9 +100,7 @@ pub(crate) fn alloc(
         let rounded = len.next_multiple_of(huge);
         match map(rounded, libc::MAP_HUGETLB) {
             Some(ptr) => {
-                if let Some(n) = node
-                    && let Err(e) = bind(ptr, rounded, n)
-                {
+                if let Err(e) = node.map_or(Ok(()), |n| bind(ptr, rounded, n)) {
                     // SAFETY: just mapped, released once.
                     unsafe { free(ptr, rounded) };
                     return Err(e);
@@ -138,9 +136,7 @@ pub(crate) fn alloc(
             pages = PageKind::TransparentHint;
         }
     }
-    if let Some(n) = node
-        && let Err(e) = bind(ptr, len, n)
-    {
+    if let Err(e) = node.map_or(Ok(()), |n| bind(ptr, len, n)) {
         // SAFETY: just mapped, released once.
         unsafe { free(ptr, len) };
         return Err(e);
