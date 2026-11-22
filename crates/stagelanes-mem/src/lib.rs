@@ -18,7 +18,10 @@
 use std::fmt;
 use std::ptr::NonNull;
 
+pub mod alloc_count;
 mod platform;
+
+pub use alloc_count::CountingAlloc;
 
 /// Default cap on a region's size: 1 GiB. Raise it per region with
 /// [`RegionConfig::max_bytes`].
