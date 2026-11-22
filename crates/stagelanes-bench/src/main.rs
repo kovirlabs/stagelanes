@@ -27,6 +27,8 @@
 //!   with random (Poisson) gaps between batches by default, or evenly
 //!   spaced with `--arrivals fixed` (which never queues below capacity). Latency runs from an item's *scheduled*
 //!   release to the sink, so a source that falls behind cannot hide delay.
+//! - `--pool-node N` places the block pool on NUMA node N (two-socket
+//!   machines: compare the stages' own node with the other one).
 //! - The single-core baseline does the same work for each item on one core
 //!   (release, parse, work and sink inline), measured the same way.
 //!
@@ -83,6 +85,7 @@ struct Args {
     socket: usize,
     priority: Priority,
     poisson: bool,
+    pool_node: Option<u32>,
 }
 
 fn usage() -> ! {
@@ -90,7 +93,7 @@ fn usage() -> ! {
         "usage: stagelanes-bench --machine <name> [--machine-desc TEXT] [--out DIR] [--note TEXT] \
          [--seconds S] [--warmup S] [--repeats N] [--loads 0.5,0.9] [--workers W] \
          [--parse-ns NS] [--work-ns NS] [--batch B] [--socket S] \
-         [--priority normal|high|time-critical] [--arrivals poisson|fixed]"
+         [--priority normal|high|time-critical] [--arrivals poisson|fixed] [--pool-node N]"
     );
     std::process::exit(2)
 }
@@ -112,6 +115,7 @@ fn parse_args() -> Args {
         socket: 0,
         priority: Priority::Normal,
         poisson: true,
+        pool_node: None,
     };
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
@@ -136,6 +140,7 @@ fn parse_args() -> Args {
             "--work-ns" => a.work_ns = num(val()),
             "--batch" => a.batch = (num(val()) as usize).max(1),
             "--socket" => a.socket = num(val()) as usize,
+            "--pool-node" => a.pool_node = Some(num(val()) as u32),
             "--arrivals" => {
                 a.poisson = match val().as_str() {
                     "poisson" => true,
@@ -381,6 +386,7 @@ struct Cfg {
     run_s: f64,
     tps: f64,
     poisson: bool,
+    pool_node: Option<u32>,
 }
 
 impl Cfg {
@@ -449,7 +455,13 @@ fn run_pipeline(cfg: &Cfg, cores: &[OsCpu], rate: Option<f64>) -> Result<Run, Er
         sink_rx.push(rx);
     }
     let (ret_tx, ret_rx) = link::<Block, POOL_BLOCKS>();
-    let pool = BlockPool::new(Region::new(&RegionConfig::new(POOL_BLOCKS * BLOCK))?, BLOCK)?;
+    let pool = BlockPool::new(
+        Region::new(&RegionConfig {
+            numa_node: cfg.pool_node,
+            ..RegionConfig::new(POOL_BLOCKS * BLOCK)
+        })?,
+        BLOCK,
+    )?;
 
     let mut handles = Vec::new();
 
@@ -873,6 +885,7 @@ fn real_main(args: &Args) -> Result<(), Error> {
         run_s: args.seconds,
         tps,
         poisson: args.poisson,
+        pool_node: args.pool_node,
     };
     let cores_s: Vec<String> = cores.iter().map(ToString::to_string).collect();
     eprintln!(
@@ -1005,6 +1018,7 @@ fn real_main(args: &Args) -> Result<(), Error> {
             "layout": format!("source, parse, {} workers, sink; one logical CPU per physical core", args.workers),
             "priority": format!("{:?}", args.priority),
             "arrivals": if args.poisson { "poisson: exponential gaps between batches, seeded (same sequence every run)" } else { "fixed: evenly spaced batches" },
+            "pool_numa_node": match args.pool_node { Some(n) => json!(n), None => json!("OS default (first touch)") },
             "batch": args.batch,
             "link_slots": SLOTS,
             "block_bytes": BLOCK,
