@@ -9,3 +9,10 @@ publish.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies]
+cpu-time = "1.0.0"
+serde_json = "1"
+stagelanes-arch = { version = "0.0.1", path = "../stagelanes-arch" }
+stagelanes-mem = { version = "0.0.1", path = "../stagelanes-mem" }
+stagelanes-pipe = { version = "0.0.1", path = "../stagelanes-pipe" }

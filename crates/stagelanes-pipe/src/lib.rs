@@ -199,6 +199,7 @@ pub struct StageSpec {
 /// What a running stage gets: start-up bookkeeping and idle accounting.
 pub struct StageCtx {
     ready: bool,
+    allocations: Option<u64>,
     busy_polls: u64,
     idle_polls: u64,
 }
@@ -209,6 +210,16 @@ impl StageCtx {
     pub fn ready(&mut self) {
         stagelanes_mem::alloc_count::arm_current_thread();
         self.ready = true;
+    }
+
+    /// Ends the measured part: stops counting allocations. After this the
+    /// stage may allocate and make system calls again, for example to
+    /// report. Optional; a stage that returns without it is counted to its
+    /// end.
+    pub fn finish(&mut self) {
+        if self.ready && self.allocations.is_none() {
+            self.allocations = Some(stagelanes_mem::alloc_count::disarm_current_thread());
+        }
     }
 
     /// Records a poll that found work.
@@ -267,11 +278,14 @@ pub fn spawn_stage<R: Send + 'static>(
             }
             let mut ctx = StageCtx {
                 ready: false,
+                allocations: None,
                 busy_polls: 0,
                 idle_polls: 0,
             };
             let out = body(&mut ctx);
-            let allocations = stagelanes_mem::alloc_count::disarm_current_thread();
+            let allocations = ctx
+                .allocations
+                .unwrap_or_else(stagelanes_mem::alloc_count::disarm_current_thread);
             (
                 StageReport {
                     name: spec.name,
