@@ -9,3 +9,9 @@ publish.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies]
+stagelanes-arch = { version = "0.1.0", path = "../stagelanes-arch" }
+stagelanes-mem = { version = "0.1.0", path = "../stagelanes-mem" }
+stagelanes-ring = { version = "0.1.0", path = "../stagelanes-ring" }
+
