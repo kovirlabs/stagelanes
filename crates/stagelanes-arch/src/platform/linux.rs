@@ -4,7 +4,7 @@ use std::path::Path;
 
 use super::sysfs;
 use crate::assemble::RawTopology;
-use crate::{Error, OsCpu};
+use crate::{Error, OsCpu, Priority};
 
 pub(crate) const SOURCE: &str =
     "Linux /sys/devices/system; frequency from cpufreq cpuinfo_max_freq";
@@ -30,6 +30,35 @@ pub(crate) fn pin_current_thread(cpu: OsCpu) -> Result<(), Error> {
             call: "sched_setaffinity",
             code: i64::from(std::io::Error::last_os_error().raw_os_error().unwrap_or(0)),
         });
+    }
+    Ok(())
+}
+
+pub(crate) fn set_current_thread_priority(priority: Priority) -> Result<(), Error> {
+    let os_error = |call| Error::Os {
+        call,
+        code: i64::from(std::io::Error::last_os_error().raw_os_error().unwrap_or(0)),
+    };
+    let (policy, rt_priority, nice) = match priority {
+        Priority::Normal => (libc::SCHED_OTHER, 0, 0),
+        Priority::High => (libc::SCHED_OTHER, 0, -10),
+        Priority::TimeCritical => (libc::SCHED_FIFO, 50, 0),
+    };
+    let param = libc::sched_param {
+        sched_priority: rt_priority,
+    };
+    // SAFETY: pid 0 is the calling thread; `param` is a valid sched_param.
+    if unsafe { libc::sched_setscheduler(0, policy, &param) } != 0 {
+        return Err(os_error("sched_setscheduler"));
+    }
+    if policy == libc::SCHED_OTHER {
+        // SAFETY: `gettid` has no preconditions.
+        let tid = unsafe { libc::gettid() };
+        // SAFETY: PRIO_PROCESS with a thread id sets that thread's nice
+        // value on Linux; no pointers are passed.
+        if unsafe { libc::setpriority(libc::PRIO_PROCESS, tid as libc::id_t, nice) } != 0 {
+            return Err(os_error("setpriority"));
+        }
     }
     Ok(())
 }

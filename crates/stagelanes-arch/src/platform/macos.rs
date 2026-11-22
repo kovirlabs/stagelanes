@@ -12,7 +12,7 @@
 use std::ffi::CString;
 
 use crate::assemble::{RawCache, RawCpu, RawTopology};
-use crate::{CacheKind, Error, OsCpu};
+use crate::{CacheKind, Error, OsCpu, Priority};
 
 pub(crate) const SOURCE: &str = "macOS sysctl hw.perflevel*";
 
@@ -138,4 +138,11 @@ pub(crate) fn pin_current_thread(_cpu: OsCpu) -> Result<(), Error> {
 
 pub(crate) fn current_cpu() -> Option<OsCpu> {
     None
+}
+
+pub(crate) fn set_current_thread_priority(priority: Priority) -> Result<(), Error> {
+    match priority {
+        Priority::Normal => Ok(()),
+        _ => Err(Error::Unsupported("raising thread priority")),
+    }
 }

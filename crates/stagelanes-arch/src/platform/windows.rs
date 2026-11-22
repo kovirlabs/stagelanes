@@ -8,12 +8,13 @@ use windows_sys::Win32::System::SystemInformation::{
     GROUP_AFFINITY, GetLogicalProcessorInformationEx, RelationAll,
 };
 use windows_sys::Win32::System::Threading::{
-    GetCurrentProcessorNumberEx, GetCurrentThread, SetThreadGroupAffinity,
+    GetCurrentProcessorNumberEx, GetCurrentThread, SetThreadGroupAffinity, SetThreadPriority,
+    THREAD_PRIORITY_HIGHEST, THREAD_PRIORITY_NORMAL, THREAD_PRIORITY_TIME_CRITICAL,
 };
 
 use super::slpi;
 use crate::assemble::RawTopology;
-use crate::{Error, OsCpu};
+use crate::{Error, OsCpu, Priority};
 
 pub(crate) const SOURCE: &str =
     "Windows GetLogicalProcessorInformationEx; frequency from CallNtPowerInformation";
@@ -130,6 +131,21 @@ pub(crate) fn pin_current_thread(cpu: OsCpu) -> Result<(), Error> {
         unsafe { SetThreadGroupAffinity(GetCurrentThread(), &affinity, core::ptr::null_mut()) };
     if ok == 0 {
         return Err(last_error("SetThreadGroupAffinity"));
+    }
+    Ok(())
+}
+
+pub(crate) fn set_current_thread_priority(priority: Priority) -> Result<(), Error> {
+    let level = match priority {
+        Priority::Normal => THREAD_PRIORITY_NORMAL,
+        Priority::High => THREAD_PRIORITY_HIGHEST,
+        Priority::TimeCritical => THREAD_PRIORITY_TIME_CRITICAL,
+    };
+    // SAFETY: `GetCurrentThread` returns a pseudo-handle that needs no
+    // closing; `level` is one of the documented THREAD_PRIORITY values.
+    let ok = unsafe { SetThreadPriority(GetCurrentThread(), level) };
+    if ok == 0 {
+        return Err(last_error("SetThreadPriority"));
     }
     Ok(())
 }

@@ -13,22 +13,30 @@ pub(crate) mod slpi;
 #[cfg(windows)]
 mod windows;
 #[cfg(windows)]
-pub(crate) use windows::{SOURCE, current_cpu, detect, pin_current_thread};
+pub(crate) use windows::{
+    SOURCE, current_cpu, detect, pin_current_thread, set_current_thread_priority,
+};
 
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "linux")]
-pub(crate) use linux::{SOURCE, current_cpu, detect, pin_current_thread};
+pub(crate) use linux::{
+    SOURCE, current_cpu, detect, pin_current_thread, set_current_thread_priority,
+};
 
 #[cfg(target_os = "macos")]
 mod macos;
 #[cfg(target_os = "macos")]
-pub(crate) use macos::{SOURCE, current_cpu, detect, pin_current_thread};
+pub(crate) use macos::{
+    SOURCE, current_cpu, detect, pin_current_thread, set_current_thread_priority,
+};
 
 #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
 mod other;
 #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
-pub(crate) use other::{SOURCE, current_cpu, detect, pin_current_thread};
+pub(crate) use other::{
+    SOURCE, current_cpu, detect, pin_current_thread, set_current_thread_priority,
+};
 
 #[cfg(target_arch = "x86_64")]
 #[path = "cpu_x86_64.rs"]

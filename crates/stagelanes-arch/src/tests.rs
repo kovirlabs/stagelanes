@@ -90,3 +90,23 @@ fn class_ranking() {
     );
     assert_eq!(assemble::rank_classes::<u64>(&[]), [] as [u8; 0]);
 }
+
+#[test]
+fn sets_thread_priority() {
+    // On its own thread, so the test runner's threads keep their priority.
+    std::thread::spawn(|| {
+        set_current_thread_priority(Priority::Normal).expect("Normal is always allowed");
+        for p in [Priority::High, Priority::TimeCritical] {
+            match set_current_thread_priority(p) {
+                Ok(()) => {}
+                // Linux without CAP_SYS_NICE, and macOS, may refuse; Windows
+                // allows both levels in a normal-class process.
+                Err(Error::Os { .. } | Error::Unsupported(_)) => {}
+                Err(e) => panic!("{p:?}: {e}"),
+            }
+        }
+        set_current_thread_priority(Priority::Normal).expect("back to Normal");
+    })
+    .join()
+    .expect("priority thread");
+}

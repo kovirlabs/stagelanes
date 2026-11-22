@@ -195,6 +195,32 @@ pub fn pin_current_thread(cpu: OsCpu) -> Result<(), Error> {
     platform::pin_current_thread(cpu)
 }
 
+/// Scheduling priority for a stage thread, so ordinary threads of other
+/// programs cannot pre-empt it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Priority {
+    /// The OS default.
+    Normal,
+    /// Above normal threads. Windows: `THREAD_PRIORITY_HIGHEST`. Linux: nice
+    /// -10 (needs `CAP_SYS_NICE`).
+    High,
+    /// The top of the normal range. Windows: `THREAD_PRIORITY_TIME_CRITICAL`
+    /// (priority 15 in a normal-class process; no privilege needed). Linux:
+    /// `SCHED_FIFO` priority 50 (needs `CAP_SYS_NICE` or root). A thread at
+    /// this level that spins can starve the rest of its core, so use it only
+    /// on cores reserved for stages.
+    TimeCritical,
+}
+
+/// Sets the calling thread's scheduling priority.
+///
+/// Call this at stage start-up, not on the hot path: it is a syscall.
+/// macOS has no such control for ordinary threads and reports
+/// `Unsupported` for anything but `Normal`.
+pub fn set_current_thread_priority(priority: Priority) -> Result<(), Error> {
+    platform::set_current_thread_priority(priority)
+}
+
 /// The logical CPU the calling thread is running on now, if the OS says.
 pub fn current_cpu() -> Option<OsCpu> {
     platform::current_cpu()
