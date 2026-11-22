@@ -212,6 +212,45 @@ pub enum Priority {
     TimeCritical,
 }
 
+/// Durable batch writes: several chunks written back to back, then flushed
+/// to the device, as one batch (the strategy's "channel program" form of a
+/// storage write).
+///
+/// - Windows 11 (IoRing version 3): one IoRing submission holds every write
+///   and a flush that waits for them, so a batch is one system call.
+/// - Otherwise: positioned writes, then `sync_data` (Unix) or a flush of
+///   the file's buffers (Windows without IoRing).
+///
+/// [`method`](DurableWriter::method) says which is in use.
+pub struct DurableWriter {
+    inner: platform::DurableWriter,
+}
+
+impl DurableWriter {
+    /// A writer; on Windows it opens an IoRing if the OS offers one.
+    pub fn new() -> Result<Self, Error> {
+        Ok(DurableWriter {
+            inner: platform::DurableWriter::new()?,
+        })
+    }
+
+    /// `"ioring"` or `"write+sync"`.
+    pub fn method(&self) -> &'static str {
+        self.inner.method()
+    }
+
+    /// Writes `chunks` back to back into `file` from byte `offset`, then
+    /// flushes them to the device. Returns once the data is durable.
+    pub fn write(
+        &mut self,
+        file: &std::fs::File,
+        offset: u64,
+        chunks: &[&[u8]],
+    ) -> Result<(), Error> {
+        self.inner.write(file, offset, chunks)
+    }
+}
+
 /// Sets the calling thread's scheduling priority.
 ///
 /// Call this at stage start-up, not on the hot path: it is a syscall.
