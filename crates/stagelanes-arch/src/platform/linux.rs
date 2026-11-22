@@ -4,7 +4,7 @@ use std::path::Path;
 
 use super::sysfs;
 use crate::assemble::RawTopology;
-use crate::{Error, OsCpu};
+use crate::{Error, OsCpu, Priority};
 
 pub(crate) const SOURCE: &str =
     "Linux /sys/devices/system; frequency from cpufreq cpuinfo_max_freq";
@@ -34,10 +34,71 @@ pub(crate) fn pin_current_thread(cpu: OsCpu) -> Result<(), Error> {
     Ok(())
 }
 
+pub(crate) fn set_current_thread_priority(priority: Priority) -> Result<(), Error> {
+    let os_error = |call| Error::Os {
+        call,
+        code: i64::from(std::io::Error::last_os_error().raw_os_error().unwrap_or(0)),
+    };
+    let (policy, rt_priority, nice) = match priority {
+        Priority::Normal => (libc::SCHED_OTHER, 0, 0),
+        Priority::High => (libc::SCHED_OTHER, 0, -10),
+        Priority::TimeCritical => (libc::SCHED_FIFO, 50, 0),
+    };
+    let param = libc::sched_param {
+        sched_priority: rt_priority,
+    };
+    // SAFETY: pid 0 is the calling thread; `param` is a valid sched_param.
+    if unsafe { libc::sched_setscheduler(0, policy, &param) } != 0 {
+        return Err(os_error("sched_setscheduler"));
+    }
+    if policy == libc::SCHED_OTHER {
+        // SAFETY: `gettid` has no preconditions.
+        let tid = unsafe { libc::gettid() };
+        // SAFETY: PRIO_PROCESS with a thread id sets that thread's nice
+        // value on Linux; no pointers are passed.
+        if unsafe { libc::setpriority(libc::PRIO_PROCESS, tid as libc::id_t, nice) } != 0 {
+            return Err(os_error("setpriority"));
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn current_cpu() -> Option<OsCpu> {
     // SAFETY: no arguments, no preconditions.
     let n = unsafe { libc::sched_getcpu() };
     u32::try_from(n)
         .ok()
         .map(|number| OsCpu { group: 0, number })
+}
+
+pub(crate) struct DurableWriter;
+
+impl DurableWriter {
+    pub(crate) fn new() -> Result<Self, Error> {
+        Ok(DurableWriter)
+    }
+
+    pub(crate) fn method(&self) -> &'static str {
+        "write+sync"
+    }
+
+    /// Positioned writes, then `sync_data` (`fdatasync` on Linux).
+    pub(crate) fn write(
+        &mut self,
+        file: &std::fs::File,
+        offset: u64,
+        chunks: &[&[u8]],
+    ) -> Result<(), Error> {
+        use std::os::unix::fs::FileExt;
+        let io = |e: std::io::Error| Error::Os {
+            call: "pwrite/fdatasync",
+            code: i64::from(e.raw_os_error().unwrap_or(0)),
+        };
+        let mut at = offset;
+        for chunk in chunks {
+            file.write_all_at(chunk, at).map_err(io)?;
+            at += chunk.len() as u64;
+        }
+        file.sync_data().map_err(io)
+    }
 }

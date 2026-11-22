@@ -90,3 +90,64 @@ fn class_ranking() {
     );
     assert_eq!(assemble::rank_classes::<u64>(&[]), [] as [u8; 0]);
 }
+
+#[test]
+fn sets_thread_priority() {
+    // On its own thread, so the test runner's threads keep their priority.
+    std::thread::spawn(|| {
+        set_current_thread_priority(Priority::Normal).expect("Normal is always allowed");
+        for p in [Priority::High, Priority::TimeCritical] {
+            match set_current_thread_priority(p) {
+                Ok(()) => {}
+                // Linux without CAP_SYS_NICE, and macOS, may refuse; Windows
+                // allows both levels in a normal-class process.
+                Err(Error::Os { .. } | Error::Unsupported(_)) => {}
+                Err(e) => panic!("{p:?}: {e}"),
+            }
+        }
+        set_current_thread_priority(Priority::Normal).expect("back to Normal");
+    })
+    .join()
+    .expect("priority thread");
+}
+
+#[test]
+fn durable_writer_writes_every_chunk() {
+    let dir = std::env::temp_dir().join(format!("stagelanes-durable-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    let path = dir.join("batch.bin");
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .truncate(true)
+        .read(true)
+        .write(true)
+        .open(&path)
+        .expect("open");
+    let chunks: Vec<Vec<u8>> = (0..3u8)
+        .map(|i| {
+            (0..(1000 + 777 * usize::from(i)))
+                .map(|j| (j as u8) ^ i)
+                .collect()
+        })
+        .collect();
+    let refs: Vec<&[u8]> = chunks.iter().map(Vec::as_slice).collect();
+    let mut w = DurableWriter::new().expect("writer");
+    eprintln!("durable writer method: {}", w.method());
+    w.write(&file, 5, &refs).expect("durable write");
+    // A second batch after the first, through the same writer.
+    w.write(
+        &file,
+        5 + refs.iter().map(|c| c.len() as u64).sum::<u64>(),
+        &refs[..1],
+    )
+    .expect("second durable write");
+    drop(file);
+    let got = std::fs::read(&path).expect("read back");
+    let mut want = vec![0u8; 5];
+    for c in &chunks {
+        want.extend_from_slice(c);
+    }
+    want.extend_from_slice(&chunks[0]);
+    assert_eq!(got, want);
+    let _ = std::fs::remove_dir_all(&dir);
+}

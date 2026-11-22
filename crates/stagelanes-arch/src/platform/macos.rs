@@ -12,7 +12,7 @@
 use std::ffi::CString;
 
 use crate::assemble::{RawCache, RawCpu, RawTopology};
-use crate::{CacheKind, Error, OsCpu};
+use crate::{CacheKind, Error, OsCpu, Priority};
 
 pub(crate) const SOURCE: &str = "macOS sysctl hw.perflevel*";
 
@@ -138,4 +138,43 @@ pub(crate) fn pin_current_thread(_cpu: OsCpu) -> Result<(), Error> {
 
 pub(crate) fn current_cpu() -> Option<OsCpu> {
     None
+}
+
+pub(crate) fn set_current_thread_priority(priority: Priority) -> Result<(), Error> {
+    match priority {
+        Priority::Normal => Ok(()),
+        _ => Err(Error::Unsupported("raising thread priority")),
+    }
+}
+
+pub(crate) struct DurableWriter;
+
+impl DurableWriter {
+    pub(crate) fn new() -> Result<Self, Error> {
+        Ok(DurableWriter)
+    }
+
+    pub(crate) fn method(&self) -> &'static str {
+        "write+sync"
+    }
+
+    /// Positioned writes, then `sync_data` (`fdatasync` on Linux).
+    pub(crate) fn write(
+        &mut self,
+        file: &std::fs::File,
+        offset: u64,
+        chunks: &[&[u8]],
+    ) -> Result<(), Error> {
+        use std::os::unix::fs::FileExt;
+        let io = |e: std::io::Error| Error::Os {
+            call: "pwrite/fdatasync",
+            code: i64::from(e.raw_os_error().unwrap_or(0)),
+        };
+        let mut at = offset;
+        for chunk in chunks {
+            file.write_all_at(chunk, at).map_err(io)?;
+            at += chunk.len() as u64;
+        }
+        file.sync_data().map_err(io)
+    }
 }
