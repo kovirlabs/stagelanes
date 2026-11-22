@@ -156,10 +156,9 @@ clear it (`Remove-Item Env:RUSTFLAGS`) so later builds don't reuse the loom cfg.
   `clippy::undocumented_unsafe_blocks` are deny.
 - `cfg(loom)` is declared in `check-cfg`; loom-specific code in
   `stagelanes-ring` goes behind `#[cfg(loom)]`.
-- Current state: every crate is a stub (crate docs only). The two binaries
-  print "not implemented yet" and exit with code 2. No inter-crate
-  dependencies are declared yet; add them as path dependencies when the
-  milestone needs them.
+- Current state: M2 (ring, mem, arch, `stagelanes topology`) and M6 (pipe,
+  bench) are built. `stagelanes-pipe` depends on ring, mem and arch;
+  `stagelanes-bench` installs `CountingAlloc` as its global allocator.
 
 Pipeline benchmark output from `stagelanes-bench` goes to
 `../paralanes/atlas/runs/<machine>/<YYYY-MM-DD>-pipeline.json`; do not edit
